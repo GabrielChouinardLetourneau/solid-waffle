@@ -33,3 +33,5 @@ jobs:
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
             publish_dir: ./playwright-report
+            destination_dir: ${{ github.run_id }} # Stores each report in a folder named after the run ID | https://gabrielchouinardletourneau.github.io/solid-waffle/<run_id>
+            keep_files: true # Crucial: prevents deleting previous folders
