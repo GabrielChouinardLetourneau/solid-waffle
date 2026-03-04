@@ -47,7 +47,6 @@ jobs:
           uses: peaceiris/actions-gh-pages@v4
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            publish_dir: ./playwright-report
-            destination_dir: ${{ github.run_number }} # Stores each report in a folder named after the run ID | https://gabrielchouinardletourneau.github.io/solid-waffle/<run_number>
+            publish_dir: ./deploy-folder
             keep_files: true # Crucial: prevents deleting previous folders
 
