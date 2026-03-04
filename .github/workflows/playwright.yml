@@ -6,8 +6,9 @@ on:
     branches: [ main ]
   workflow_dispatch: # Allows manual triggering from the GitHub Actions tab
 jobs:
-  test:
+  run_playwright_tests_and_deploy_report:
     timeout-minutes: 60
+    name: Run Playwright Tests and Deploy Report
     runs-on: ubuntu-latest
     permissions:
         contents: write  # Required for peaceiris/actions-gh-pages to push to a branch
