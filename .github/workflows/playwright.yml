@@ -32,21 +32,21 @@ jobs:
           if: always()
           run: |
             # Create a clean workspace for deployment
-            mkdir deploy-folder
+            mkdir solid-waffle-reports
             # Move the current run's report into a numbered subfolder
-            cp -r playwright-report deploy-folder/${{ github.run_number }}
+            cp -r playwright-report solid-waffle-reports/${{ github.run_number }}
 
         - name: Generate Navigation Index
           if: always()
           uses: gacts/directory-listing@v1
           with:
-            target: deploy-folder # This creates index.html inside deploy-folder
+            target: solid-waffle-reports # This creates index.html inside solid-waffle-reports
 
         - name: Deploy to GitHub Pages
           if: always() # Ensure report is uploaded even if tests fail
           uses: peaceiris/actions-gh-pages@v4
           with:
             github_token: ${{ secrets.GITHUB_TOKEN }}
-            publish_dir: ./deploy-folder
+            publish_dir: ./solid-waffle-reports
             keep_files: true # Crucial: prevents deleting previous folders
 
