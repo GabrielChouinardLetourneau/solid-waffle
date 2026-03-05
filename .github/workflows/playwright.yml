@@ -31,9 +31,9 @@ jobs:
         - name: Prepare Report Folder
           if: always()
           run: |
-            # Create a clean workspace for deployment
-            mkdir solid-waffle-reports
-            # Move the current run's report into a numbered subfolder
+            # Create report directory if it doesn't exist
+            mkdir -p solid-waffle-reports
+            # Copy the current run's report into a numbered subfolder
             cp -r playwright-report solid-waffle-reports/${{ github.run_number }}
 
         - name: Generate Navigation Index
