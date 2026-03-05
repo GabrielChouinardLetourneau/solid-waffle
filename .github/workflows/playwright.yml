@@ -31,24 +31,45 @@ jobs:
         - name: Prepare Report Folder
           if: always()
           run: |
-            # Fetch existing gh-pages branch to preserve previous runs
-            git fetch origin gh-pages --depth=1 2>/dev/null || true
-            
-            # Check out existing reports folder from gh-pages if it exists
-            if git rev-parse origin/gh-pages >/dev/null 2>&1; then
-              git checkout origin/gh-pages -- solid-waffle-reports 2>/dev/null || mkdir -p solid-waffle-reports
-            else
-              mkdir -p solid-waffle-reports
-            fi
-            
+            # Create report directory if it doesn't exist
+            mkdir -p solid-waffle-reports
             # Copy the current run's report into a numbered subfolder
             cp -r playwright-report solid-waffle-reports/${{ github.run_number }}
 
         - name: Generate Navigation Index
           if: always()
-          uses: gacts/directory-listing@v1
-          with:
-            target: solid-waffle-reports # This creates index.html with all runs
+          run: |
+            cd solid-waffle-reports
+            # Generate index.html with links to all run folders
+            cat > index.html << 'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <title>Playwright Test Reports</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #333; }
+                ul { list-style-type: none; padding: 0; }
+                li { margin: 10px 0; }
+                a { color: #0066cc; text-decoration: none; font-size: 16px; }
+                a:hover { text-decoration: underline; }
+              </style>
+            </head>
+            <body>
+              <h1>Playwright Test Reports</h1>
+              <ul>
+            EOF
+            
+            # Add links for all numeric folders (run numbers), sorted in descending order
+            for run in $(ls -d [0-9]* 2>/dev/null | sort -rn); do
+              echo "                <li><a href=\"$run/index.html\">Run #$run</a></li>" >> index.html
+            done
+            
+            cat >> index.html << 'EOF'
+              </ul>
+            </body>
+            </html>
+            EOF
 
         - name: Deploy to GitHub Pages
           if: always() # Ensure report is uploaded even if tests fail
