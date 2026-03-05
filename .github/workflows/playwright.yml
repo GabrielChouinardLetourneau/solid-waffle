@@ -11,7 +11,7 @@ jobs:
     name: Run Playwright Tests and Deploy Report
     runs-on: ubuntu-latest
     permissions:
-        contents: write  # Required for peaceiris/actions-gh-pages to push to a branch
+        contents: write  # Required for peaceiris/actions-gh-pages to push to a branch and for the preparation of the report folder
 
 
     steps:
@@ -31,8 +31,16 @@ jobs:
         - name: Prepare Report Folder
           if: always()
           run: |
-            # Create report directory if it doesn't exist
-            mkdir -p solid-waffle-reports
+            # Fetch existing gh-pages branch to preserve previous runs
+            git fetch origin gh-pages --depth=1 2>/dev/null || true
+            
+            # Check out existing reports folder from gh-pages if it exists
+            if git rev-parse origin/gh-pages >/dev/null 2>&1; then
+              git checkout origin/gh-pages -- solid-waffle-reports 2>/dev/null || mkdir -p solid-waffle-reports
+            else
+              mkdir -p solid-waffle-reports
+            fi
+            
             # Copy the current run's report into a numbered subfolder
             cp -r playwright-report solid-waffle-reports/${{ github.run_number }}
 
@@ -40,7 +48,7 @@ jobs:
           if: always()
           uses: gacts/directory-listing@v1
           with:
-            target: solid-waffle-reports # This creates index.html inside solid-waffle-reports
+            target: solid-waffle-reports # This creates index.html with all runs
 
         - name: Deploy to GitHub Pages
           if: always() # Ensure report is uploaded even if tests fail
