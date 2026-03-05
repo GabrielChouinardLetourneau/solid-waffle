@@ -6,7 +6,7 @@ const { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } = r
  */
 
 
-describe("Hacker News page", () => {
+describe("Hacker News page - Newest", () => {
     let browser;
     let context;
     let page;
@@ -28,26 +28,19 @@ describe("Hacker News page", () => {
         await context.close();
     });
 
-    test("should load Hacker News newest page", async () => {
-        await page.goto("https://news.ycombinator.com/newest");
-        const title = await page.title();
-        expect(title).toContain("Hacker News");
-    });
-
     test("should display articles sorted by newest first", async () => {
         await page.goto("https://news.ycombinator.com/newest");
+        await page.waitForLoadState('networkidle');
 
         // Verify that there are articles on the page before proceeding with the test
         let articleCount = await page.locator(".submission").count();
-        if (articleCount === 0) {
-            throw new Error("No articles found on the page");
-        }
+        expect(articleCount).toBeGreaterThan(0);
 
         // Track total articles tested across all batches
         let totalArticlesTested = 0;
         let pointer = 0;
         const articlesToTest = 100;
-        let previousArticleTime = null; // Store the last article's timestamp for cross-batch comparison
+        let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
 
         while (totalArticlesTested < articlesToTest) {
             // If we've reached the last position in this batch, reload
@@ -55,11 +48,13 @@ describe("Hacker News page", () => {
                 const moreButton = page.locator("a.morelink");
                 if (await moreButton.isVisible()) {
                     // Save the last article's timestamp before reloading
-                    const lastArticleElement = await page.locator('.age').nth(articleCount - 1);
-                    previousArticleTime = await lastArticleElement.getAttribute('title');
+                    const previousPageLastArticleElement = page.locator('.age').nth(articleCount - 1);
+                    await previousPageLastArticleElement.waitFor();
+                    previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
                     
                     await moreButton.click();
-                    await page.waitForTimeout(1000); // Wait for articles to load
+                    await page.waitForLoadState('networkidle'); // Wait for articles to load
+                    articleCount = await page.locator(".submission").count(); // Update article count after loading new batch
                     pointer = 0; // Reset pointer for next batch
                 }
                 else {
@@ -67,74 +62,41 @@ describe("Hacker News page", () => {
                 }
             }
 
-            
-
-            const leftArticleElement = await page.locator('.age').nth(pointer);
-            const rightArticleElement = await page.locator('.age').nth(pointer + 1);
+            const leftArticleElement = page.locator('.age').nth(pointer);
+            const rightArticleElement = page.locator('.age').nth(pointer + 1);
             await leftArticleElement.waitFor();
             await rightArticleElement.waitFor();
 
             const leftArticleTime = await leftArticleElement.getAttribute('title');
             const rightArticleTime = await rightArticleElement.getAttribute('title');
             
-            if (leftArticleTime && rightArticleTime) {
-                // If this is the first article after a reload and we have a previous timestamp, compare them before doing the regular comparisons
-                if (pointer === 0 && previousArticleTime) {
-                    const prevTime = new Date(parseInt(previousArticleTime.slice(20)) * 1000);
-                    const currentTime = new Date(parseInt(leftArticleTime.slice(20)) * 1000);
-                    expect(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());   
-                    totalArticlesTested++;
-                    previousArticleTime = null; // Clear it after using
-                    
-                }
-                const leftTime = new Date(parseInt(leftArticleTime.slice(20)) * 1000);
-                const rightTime = new Date(parseInt(rightArticleTime.slice(20)) * 1000);
-                expect(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());   
+            expect(leftArticleTime).toBeTruthy();
+            expect(rightArticleTime).toBeTruthy();
+
+            // If this is the first article after a reload and we have a previous timestamp, compare them before doing the regular comparisons
+            if (pointer === 0 && previousPageLastArticleTime) {
+                const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
+                const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
+                const prevTime = new Date(prevUnix * 1000);
+                const currentTime = new Date(currentUnix * 1000);
+                expect.soft(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());   
                 totalArticlesTested++;
-                pointer++;
+                previousPageLastArticleTime = null; // Clear it after using
                 
-                console.log(`Comparing articles at positions ${pointer - 1} and ${pointer} (total tested: ${totalArticlesTested})`);
             }
-            else {
-                throw new Error("Could not retrieve article times for comparison");
-            }
+            const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
+            const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
+            const leftTime = new Date(leftUnix * 1000);
+            const rightTime = new Date(rightUnix * 1000);
+            expect.soft(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());
+            totalArticlesTested++;
+            pointer++;
+            
+            console.log(`Comparing articles at positions ${pointer - 1} and ${pointer} (total tested: ${totalArticlesTested})`);
+            
         }
     });
 
-        // for (let i = 0; i < 99; i++) {
-        //     const currentArticleElement = await page.locator('.age').nth(count);
-        //     const nextArticleElement = await 
-        //     await currentArticleElement.waitFor();
-        //     await nextArticleElement.waitFor();
-
-        //     const currentArticleTime = await currentArticleElement.getAttribute('title');
-        //     const nextArticleTime = await nextArticleElement.getAttribute('title');
-
-        //     if (currentArticleTime && nextArticleTime) {
-        //         const currentTime = new Date(parseInt(currentArticleTime.slice(20)) * 1000);
-        //         const nextTime = new Date(parseInt(nextArticleTime.slice(20)) * 1000);
-        //         expect(currentTime.getTime()).toBeGreaterThanOrEqual(nextTime.getTime());
-        //     }
-            
-        //     // Figure out what divisor to use to determine when to load more articles 
-        //     // We want to keep this number flexible in case the number of articles per batch changes
-        //     const divisor = articleCount - 2; // We use -2 because the last 2 articles will be the ones we are comparing, and we want to load more before we get to them
-        //     // Load more articles if we're at a batch boundary (depending on the divisor) and need more
-        //     if (i % divisor === 0 && i > 0) {
-        //         const moreButton = page.locator("a.morelink");
-        //         if (await moreButton.isVisible()) {
-        //             await moreButton.click();
-        //             await page.waitForTimeout(1000); // Wait for articles to load                    
-        //         }
-        //         else {
-        //             throw new Error("More articles button not found or not visible when expected");
-        //         }
-        //         count = 0;
-        //     }
-        //     else {
-        //         count++;
-        //     }
-        // }
 
     test("should verify article content is visible", async () => {
         await page.goto("https://news.ycombinator.com/newest");
@@ -149,3 +111,86 @@ describe("Hacker News page", () => {
         expect(firstArticleLink.length).toBeGreaterThan(0);
     });
 });
+
+describe("Hacker News page - Past", () => {
+    let browser;
+    let context;
+    let page;
+
+    beforeAll(async () => {
+        browser = await chromium.launch();
+    });
+
+    afterAll(async () => {
+        await browser.close();
+    });
+
+    beforeEach(async () => {
+        context = await browser.newContext();
+        page = await context.newPage();
+    });
+
+    afterEach(async () => {
+        await context.close();
+    });
+
+    test("should display past articles depending on time modifier", async () => {
+        await page.goto("https://news.ycombinator.com/front");
+        await page.waitForLoadState('networkidle');
+
+        // Verify that there are articles on the page before proceeding with the test
+        let articleCount = await page.locator(".submission").count();
+        expect(articleCount).toBeGreaterThan(0);
+
+        // First take the date that we will be using our reference for the comparisons 
+        let referenceDateElement = page.locator('.pagetop > font');
+        await referenceDateElement.waitFor();
+        let referenceDate = await referenceDateElement.textContent();
+        expect(referenceDate).toBeTruthy();
+
+
+
+        let hnmoreModifierCount = await page.locator(".hnmore > a").count();
+        for (let i = 0; i < hnmoreModifierCount; i++) {
+            const modifierElement = page.locator(".hnmore > a").nth(i);
+            await modifierElement.waitFor();
+
+            await modifierElement.click();
+            await page.waitForLoadState('networkidle'); // Wait for articles to load
+
+            referenceDateElement = page.locator('.pagetop > font');
+            await referenceDateElement.waitFor();
+            referenceDate = await referenceDateElement.textContent();
+            expect(referenceDate).toBeTruthy();
+
+            // For now, let's just check the first 10 articles for each modifier, we can increase this number later if needed
+            for (let j = 0; j < 10; j++) {
+                const articleDateElement = page.locator('.age').nth(j);
+                await articleDateElement.waitFor();
+                const articleDateText = await articleDateElement.getAttribute('title');
+
+                const date = articleDateText.split("T")[0];
+                if (date) {
+                    const articleDate = new Date(date);
+                    const refDateString = referenceDate.split("T")[0];
+                    expect(date).toEqual(refDateString);
+                }
+            }
+        }
+    });
+
+
+    test("should verify article content is visible", async () => {
+        await page.goto("https://news.ycombinator.com/front");
+        const firstArticleTitle = await page.locator(".submission .titleline > a").first();
+        expect(await firstArticleTitle.isVisible()).toBeTruthy();
+    });
+
+    test("should verify articles have valid URLs", async () => {
+        await page.goto("https://news.ycombinator.com/front");
+        const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
+        expect(firstArticleLink).toBeTruthy();
+        expect(firstArticleLink.length).toBeGreaterThan(0);
+    });
+});
+
