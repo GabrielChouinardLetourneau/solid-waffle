@@ -1,39 +1,59 @@
 <!DOCTYPE html>
-<html>
-<head>Hacker News testing reports</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker News testing reports</title>
     <style>
         :root { --color-text-primary: #444; --color-text-secondary: #111; --color-bg-primary: #ddd; --color-bg-secondary: #bbb; }
         @media (prefers-color-scheme: dark) { :root { --color-text-primary: #bbb; --color-text-secondary: #eee; --color-bg-primary: #242424; --color-bg-secondary: #444; } }
         html, body { margin: 0; padding: 0; background-color: var(--color-bg-primary); color: var(--color-text-primary); font-family: ui-sans-serif, system-ui, sans-serif; }
         body { display: flex; flex-direction: column; margin: 2em 1.25em; font-size: 16px; }
-        a { color: var(--color-text-secondary); font-weight: 500; }
+        @media screen and (max-width: 480px) { body { font-size: 14px; } }
+        @media screen and (min-width: 1800px) { body, html { font-size: 20px; } }
+        a { color: var(--color-text-secondary); font-weight: 500; text-decoration: none; }
+        a:hover { opacity: 0.85; transition: opacity 0.2s linear; text-decoration: underline; }
+        a:visited { color: var(--color-text-secondary); }
+        header, main { padding: 0 2rem; }
+        header { margin-bottom: 1rem; }
+        main { overflow: auto; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 1.25rem 1rem; text-align: left; }
+        th, td { padding: 1.25rem 1rem; border-bottom: 1px solid var(--color-bg-secondary); text-align: left; white-space: nowrap; }
+        th.name, td.name { text-align: left; }
+        th.status, td.status { width: 10%; text-align: center; }
+        td.status.success { color: #2da44e; }
+        td.status.failure { color: #cf222e; }
+        th.sha, td.sha { width: 10%; text-align: center; font-family: monospace; }
+        tbody > tr:last-child > td { border-bottom: none; }
+        footer { text-align: center; padding: 1rem 0; }
     </style>
 </head>
 <body>
     <header><h1>Hacker News testing reports</h1></header>
     <main>
         <table>
-            <thead><tr><th>Name</th><th>Last Modified</th></tr></thead>
+            <thead><tr><th class="name">Name</th><th class="status">Result</th><th class="sha">Commit</th></tr></thead>
             <tbody>
-                <tr><td><a href="..">[..]</a></td><td>-</td></tr>
-                    <tr><td><a href="./23">[23]</a></td><td>2026-03-06 19:43:24</td></tr>
-                    <tr><td><a href="./22">[22]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./21">[21]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./20">[20]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./19">[19]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./18">[18]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./13">[13]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./12">[12]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./11">[11]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./10">[10]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./9">[9]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./8">[8]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./7">[7]</a></td><td>2026-03-06 19:43:26</td></tr>
-                    <tr><td><a href="./6">[6]</a></td><td>2026-03-06 19:43:26</td></tr>
+                    <tr><td class="name"><a href="./24">24</a></td><td class="status failure">failure</td><td class="sha">60ea461</td></tr>
+                    <tr><td class="name"><a href="./23">23</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./22">22</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./21">21</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./20">20</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./19">19</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./18">18</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./13">13</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./12">12</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./11">11</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./10">10</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./9">9</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./8">8</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./7">7</a></td><td class="status -">-</td><td class="sha"></td></tr>
+                    <tr><td class="name"><a href="./6">6</a></td><td class="status -">-</td><td class="sha"></td></tr>
             </tbody>
         </table>
     </main>
+    <footer>
+        Repository <a href="https://github.com/gabrielchouinardletourneau/solid-waffle">gabrielchouinardletourneau/solid-waffle</a>
+    </footer>
 </body>
 </html>
