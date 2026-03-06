@@ -47,8 +47,6 @@ jobs:
           run: |
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git fetch origin gh-pages
-            git checkout origin/gh-pages -- solid-waffle-reports
             git add solid-waffle-reports
             git diff --cached --quiet || git commit -m "ci: sync solid-waffle-reports from gh-pages [skip ci]"
             git push origin HEAD:main
