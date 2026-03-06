@@ -34,19 +34,22 @@ jobs:
             ref: gh-pages
             path: gh-pages
         
-        - name: Copy existing reports from gh-pages
-          if: always() # Ensure this runs even if tests fail
-          run: |
-            mkdir -p solid-waffle-reports
-            if [ -d gh-pages ]; then
-              cp -rp gh-pages/* solid-waffle-reports/ 2>/dev/null || true
-            fi
-            
         - name: Prepare Report Folder
           if: always()
           run: |
+            mkdir -p solid-waffle-reports
+
+            # Copy previous reports if they exist
+            if [ -d gh-pages ]; then
+            cp -rp gh-pages/*/ solid-waffle-reports/ 2>/dev/null || true
+            fi
+
             # Add the current report
             cp -rp playwright-report solid-waffle-reports/${{ github.run_number }}
+        
+        - name: Log solid-waffle-reports contents
+          if: always()
+          run: ls -la solid-waffle-reports/
 
         - name: Generate Navigation Index
           if: always()
