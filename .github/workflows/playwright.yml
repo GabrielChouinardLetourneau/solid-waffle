@@ -99,9 +99,15 @@ jobs:
                         <tbody>
             EOF
               ls -d solid-waffle-reports/*/ | xargs -I{} basename {} | sort -rn | while read dir; do
-                sha=$(cat "solid-waffle-reports/$dir/.sha" 2>/dev/null | cut -c1-7 || echo "-")
+                sha_full=$(cat "solid-waffle-reports/$dir/.sha" 2>/dev/null || echo "")
+                sha_short="${sha_full:0:7}"
                 status=$(cat "solid-waffle-reports/$dir/.status" 2>/dev/null || echo "-")
-                echo "                    <tr><td class=\"name\"><a href=\"./$dir\">$dir</a></td><td class=\"status $status\">$status</td><td class=\"sha\">$sha</td></tr>"
+                if [ -n "$sha_full" ]; then
+                  sha_cell="<a href=\"https://github.com/gabrielchouinardletourneau/solid-waffle/commit/$sha_full\">$sha_short</a>"
+                else
+                  sha_cell="-"
+                fi
+                echo "                    <tr><td class=\"name\"><a href=\"./$dir\">$dir</a></td><td class=\"status $status\">$status</td><td class=\"sha\">$sha_cell</td></tr>"
               done
               cat <<'EOF'
                         </tbody>
