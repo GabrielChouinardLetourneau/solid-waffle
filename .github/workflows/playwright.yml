@@ -44,7 +44,7 @@ jobs:
             fi
 
             # Add the current report
-            cp -r playwright-report solid-waffle-reports/${{ github.run_number }}
+            cp -rp playwright-report solid-waffle-reports/${{ github.run_number }}
 
         - name: Generate Navigation Index
           if: always()
