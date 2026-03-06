@@ -15,12 +15,7 @@ jobs:
 
 
     steps:
-        - name: Checkout gh-pages branch
-          uses: actions/checkout@v5
-          with:
-            ref: gh-pages
-            path: gh-pages
-          continue-on-error: true
+        - uses: actions/checkout@v5
         - uses: actions/setup-node@v5
           with:
             node-version: lts/*
@@ -33,16 +28,35 @@ jobs:
         - name: Run Playwright tests
           run: npx playwright test
 
+        - name: Checkout gh-pages branch
+          uses: actions/checkout@v5
+          with:
+            ref: gh-pages
+            path: gh-pages
+        
+        - name: Copy existing reports from gh-pages
+          if: always() # Ensure this runs even if tests fail
+          run: |
+            mkdir -p solid-waffle-reports
+            if [ -d gh-pages ]; then
+              cp -rp gh-pages/*/ solid-waffle-reports/ 2>/dev/null || true
+            fi
+            
+        - name: Copy reports to main branch
+          if: always()
+          run: |
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git fetch origin gh-pages
+            git checkout origin/gh-pages -- solid-waffle-reports
+            git add solid-waffle-reports
+            git diff --cached --quiet || git commit -m "ci: sync solid-waffle-reports from gh-pages [skip ci]"
+            git push origin HEAD:main
+
+        - uses: actions/checkout@v5 # Re-checkout the main branch to get the latest report
         - name: Prepare Report Folder
           if: always()
           run: |
-            mkdir -p solid-waffle-reports
-
-            # Copy previous reports if they exist
-            if [ -d gh-pages ]; then
-            cp -r gh-pages/*/ solid-waffle-reports/ 2>/dev/null || true
-            fi
-
             # Add the current report
             cp -rp playwright-report solid-waffle-reports/${{ github.run_number }}
 
