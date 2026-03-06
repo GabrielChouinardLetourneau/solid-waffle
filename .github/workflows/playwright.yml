@@ -39,7 +39,7 @@ jobs:
           run: |
             mkdir -p solid-waffle-reports
             if [ -d gh-pages ]; then
-              cp -rp gh-pages/*/ solid-waffle-reports/ 2>/dev/null || true
+              cp -rp gh-pages/* solid-waffle-reports/ 2>/dev/null || true
             fi
             
         - name: Prepare Report Folder
