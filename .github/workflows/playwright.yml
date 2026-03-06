@@ -48,9 +48,42 @@ jobs:
 
         - name: Generate Navigation Index
           if: always()
-          uses: gacts/directory-listing@v1
-          with:
-            target: solid-waffle-reports # This creates index.html inside solid-waffle-reports
+          run: |
+            {
+              cat <<'EOF'
+            <!DOCTYPE html>
+            <html>
+            <head>Hacker News testing reports</title>
+                <style>
+                    :root { --color-text-primary: #444; --color-text-secondary: #111; --color-bg-primary: #ddd; --color-bg-secondary: #bbb; }
+                    @media (prefers-color-scheme: dark) { :root { --color-text-primary: #bbb; --color-text-secondary: #eee; --color-bg-primary: #242424; --color-bg-secondary: #444; } }
+                    html, body { margin: 0; padding: 0; background-color: var(--color-bg-primary); color: var(--color-text-primary); font-family: ui-sans-serif, system-ui, sans-serif; }
+                    body { display: flex; flex-direction: column; margin: 2em 1.25em; font-size: 16px; }
+                    a { color: var(--color-text-secondary); font-weight: 500; }
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { padding: 1.25rem 1rem; text-align: left; }
+                </style>
+            </head>
+            <body>
+                <header><h1>Hacker News testing reports</h1></header>
+                <main>
+                    <table>
+                        <thead><tr><th>Name</th><th>Last Modified</th></tr></thead>
+                        <tbody>
+                            <tr><td><a href="..">[..]</a></td><td>-</td></tr>
+            EOF
+              ls -d solid-waffle-reports/*/ | xargs -I{} basename {} | sort -rn | while read dir; do
+                modified=$(stat -c '%y' "solid-waffle-reports/$dir" | cut -d'.' -f1)
+                echo "                    <tr><td><a href=\"./$dir\">[$dir]</a></td><td>$modified</td></tr>"
+              done
+              cat <<'EOF'
+                        </tbody>
+                    </table>
+                </main>
+            </body>
+            </html>
+            EOF
+            } > solid-waffle-reports/index.html
 
         - name: Deploy to GitHub Pages
           if: always() # Ensure report is uploaded even if tests fail
