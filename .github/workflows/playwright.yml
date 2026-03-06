@@ -29,6 +29,7 @@ jobs:
           run: npx playwright test
 
         - name: Checkout gh-pages branch
+          if: always()
           uses: actions/checkout@v5
           with:
             ref: gh-pages
