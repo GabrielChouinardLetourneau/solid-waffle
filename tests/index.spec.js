@@ -4,8 +4,8 @@ test.describe("Hacker News page - Newest", () => {
     test("should display articles sorted by newest first", async ({ page }) => {
         await test.step('Navigate to Hacker News newest page', async () => {
             const response = await page.goto("/newest");
-            expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-            await page.waitForLoadState('networkidle');
+
+            expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
         });
 
         let articleCount;
@@ -32,7 +32,6 @@ test.describe("Hacker News page - Newest", () => {
                         previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
 
                         await moreButton.click();
-                        await page.waitForLoadState('networkidle'); // Wait for articles to load
                         articleCount = await page.locator(".submission").count(); // Update article count after loading new batch
                         pointer = 0; // Reset pointer for next batch
                     }
@@ -41,10 +40,9 @@ test.describe("Hacker News page - Newest", () => {
                     }
                 }
 
-                const leftArticleElement = page.locator('.age').nth(pointer);
-                const rightArticleElement = page.locator('.age').nth(pointer + 1);
-                await leftArticleElement.waitFor();
-                await rightArticleElement.waitFor();
+                // Get the timestamps of the current pair of articles to compare
+                const leftArticleElement = await page.locator('.age').nth(pointer);
+                const rightArticleElement = await page.locator('.age').nth(pointer + 1);
 
                 const leftArticleTime = await leftArticleElement.getAttribute('title');
                 const rightArticleTime = await rightArticleElement.getAttribute('title');
@@ -82,8 +80,8 @@ test.describe("Hacker News page - Newest", () => {
 
     test("should verify article content is visible", async ({ page }) => {
         const response = await page.goto("/newest");
-        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-        await page.waitForLoadState('networkidle');
+
+        expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
         const firstArticleTitle = page.locator(".submission .titleline > a").first();
         await expect(firstArticleTitle).toBeVisible();
@@ -93,8 +91,8 @@ test.describe("Hacker News page - Newest", () => {
 
     test("should verify articles have valid URLs", async ({ page }) => {
         const response = await page.goto("/newest");
-        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-        await page.waitForLoadState('networkidle');
+
+        expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
         expect(firstArticleLink).toMatch(/^https?:\/\/.+/);
@@ -102,17 +100,16 @@ test.describe("Hacker News page - Newest", () => {
 });
 
 test.describe("Hacker News page - Past", () => {
+    // This test intentionally fails: HN's /front page time modifiers do not reliably
+    // filter articles to the selected date — articles from other dates appear in results.
+    // Keeping this as a documented regression to highlight the inconsistent behavior.
+    // This test highlight some issues with the /front page which adds to other known issues with the page such as these links seen below
+    // https://news.ycombinator.com/item?id=47186188 | https://news.ycombinator.com/item?id=46896107
     test("should display past articles depending on date reference", async ({ page }) => {
-        // HN's /front page time modifiers do not reliably filter articles to the
-        // selected date — articles from other dates appear in results. Documented here to showcase the test structure and soft assertions for non-deterministic behavior.
-        // This test highlight some issues with the /front page which adds to other known issues with the page such as these links seen below
-        // https://news.ycombinator.com/item?id=47186188 | https://news.ycombinator.com/item?id=46896107
-        test.fail();
-
         await test.step('Navigate to Hacker News front page', async () => {
             const response = await page.goto("/front");
-            expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-            await page.waitForLoadState('networkidle');
+
+            expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
         });
 
         let articleCount;
@@ -122,8 +119,7 @@ test.describe("Hacker News page - Past", () => {
             articleCount = await page.locator(".submission").count();
             expect(articleCount).toBeGreaterThan(0);
 
-            referenceDateElement = page.locator('.pagetop > font');
-            await referenceDateElement.waitFor();
+            referenceDateElement = await page.locator('.pagetop > font');
             referenceDate = await referenceDateElement.textContent();
             expect(referenceDate).toBeTruthy();
         });
@@ -131,21 +127,17 @@ test.describe("Hacker News page - Past", () => {
         await test.step('Verify articles match reference date for each time modifier', async () => {
             const hnmoreModifierCount = await page.locator(".hnmore > a").count();
             for (let i = 0; i < hnmoreModifierCount; i++) {
-                const modifierElement = page.locator(".hnmore > a").nth(i);
-                await modifierElement.waitFor();
+                const modifierElement = await page.locator(".hnmore > a").nth(i);
 
                 await modifierElement.click();
-                await page.waitForLoadState('networkidle'); // Wait for articles to load
 
-                referenceDateElement = page.locator('.pagetop > font');
-                await referenceDateElement.waitFor();
+                referenceDateElement = await page.locator('.pagetop > font');
                 referenceDate = await referenceDateElement.textContent();
                 expect(referenceDate).toBeTruthy();
 
                 // Check the first 10 articles for each modifier
                 for (let j = 0; j < 10; j++) {
-                    const articleDateElement = page.locator('.age').nth(j);
-                    await articleDateElement.waitFor();
+                    const articleDateElement = await page.locator('.age').nth(j);
                     const articleDateText = await articleDateElement.getAttribute('title');
 
                     const articleDateString = articleDateText.split("T")[0];
@@ -161,8 +153,7 @@ test.describe("Hacker News page - Past", () => {
 
     test("should verify article content is visible", async ({ page }) => {
         const response = await page.goto("/front");
-        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-        await page.waitForLoadState('networkidle');
+        expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
         const firstArticleTitle = page.locator(".submission .titleline > a").first();
         await expect(firstArticleTitle).toBeVisible();
@@ -172,8 +163,7 @@ test.describe("Hacker News page - Past", () => {
 
     test("should verify articles have valid URLs", async ({ page }) => {
         const response = await page.goto("/front");
-        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
-        await page.waitForLoadState('networkidle');
+        expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
         expect(firstArticleLink).toMatch(/^https?:\/\/.+/);
