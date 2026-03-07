@@ -1,34 +1,7 @@
-const { chromium } = require("playwright");
-const { describe, test, expect, beforeAll, afterAll, beforeEach, afterEach } = require("playwright/test");
+import { test, expect } from '@playwright/test';
 
-/**
- * @see https://playwright.dev/docs/test-configuration
- */
-
-
-describe("Hacker News page - Newest", () => {
-    let browser;
-    let context;
-    let page;
-
-    beforeAll(async () => {
-        browser = await chromium.launch();
-    });
-
-    afterAll(async () => {
-        await browser.close();
-    });
-
-    beforeEach(async () => {
-        context = await browser.newContext();
-        page = await context.newPage();
-    });
-
-    afterEach(async () => {
-        await context.close();
-    });
-
-    test("should display articles sorted by newest first", async () => {
+test.describe("Hacker News page - Newest", () => {
+    test("should display articles sorted by newest first", async ({ page }) => {
         await page.goto("https://news.ycombinator.com/newest");
         await page.waitForLoadState('networkidle');
 
@@ -43,11 +16,11 @@ describe("Hacker News page - Newest", () => {
         let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
 
         while (totalArticlesTested < articlesToTest) {
-            // If we've reached the last position in this batch, reload
+            // If we've reached the last position in this batch, load more
             if (pointer > articleCount - 2) {
                 const moreButton = page.locator("a.morelink");
                 if (await moreButton.isVisible()) {
-                    // Save the last article's timestamp before reloading
+                    // Save the last article's timestamp before reloading the next page
                     const previousPageLastArticleElement = page.locator('.age').nth(articleCount - 1);
                     await previousPageLastArticleElement.waitFor();
                     previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
@@ -70,10 +43,10 @@ describe("Hacker News page - Newest", () => {
             const leftArticleTime = await leftArticleElement.getAttribute('title');
             const rightArticleTime = await rightArticleElement.getAttribute('title');
             
-            expect(leftArticleTime).toBeTruthy();
-            expect(rightArticleTime).toBeTruthy();
+            expect.soft(leftArticleTime).toBeTruthy();
+            expect.soft(rightArticleTime).toBeTruthy();
 
-            // If this is the first article after a reload and we have a previous timestamp, compare them before doing the regular comparisons
+            // If this is the first article after a reload and we have a previous timestamp, so we compare them before doing the regular comparisons
             if (pointer === 0 && previousPageLastArticleTime) {
                 const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
                 const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
@@ -81,9 +54,11 @@ describe("Hacker News page - Newest", () => {
                 const currentTime = new Date(currentUnix * 1000);
                 expect.soft(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());   
                 totalArticlesTested++;
-                previousPageLastArticleTime = null; // Clear it after using
+                previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
                 
             }
+
+
             const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
             const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
             const leftTime = new Date(leftUnix * 1000);
@@ -91,49 +66,33 @@ describe("Hacker News page - Newest", () => {
             expect.soft(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());
             totalArticlesTested++;
             pointer++;
-            
-            console.log(`Comparing articles at positions ${pointer - 1} and ${pointer} (total tested: ${totalArticlesTested})`);
-            
         }
+
+        // Verify we actually tested the full 100 comparisons and didn't exit early (e.g. due to lack of articles)
+        expect(totalArticlesTested).toBeGreaterThanOrEqual(articlesToTest);
     });
 
 
-    test("should verify article content is visible", async () => {
+    test("should verify article content is visible", async ({ page }) => {
         await page.goto("https://news.ycombinator.com/newest");
-        const firstArticleTitle = await page.locator(".submission .titleline > a").first();
-        expect(await firstArticleTitle.isVisible()).toBeTruthy();
+        await page.waitForLoadState('networkidle');
+
+        const firstArticleTitle = page.locator(".submission .titleline > a").first();
+        await expect(firstArticleTitle).toBeVisible();
+        const titleText = await firstArticleTitle.textContent();
+        expect(titleText?.trim().length).toBeGreaterThan(0);
     });
 
-    test("should verify articles have valid URLs", async () => {
+    test("should verify articles have valid URLs", async ({ page }) => {
         await page.goto("https://news.ycombinator.com/newest");
+        await page.waitForLoadState('networkidle');
+
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
-        expect(firstArticleLink).toBeTruthy();
-        expect(firstArticleLink.length).toBeGreaterThan(0);
+        expect(firstArticleLink).toMatch(/^https?:\/\/.+/);
     });
 });
 
-describe("Hacker News page - Past", () => {
-    let browser;
-    let context;
-    let page;
-
-    beforeAll(async () => {
-        browser = await chromium.launch();
-    });
-
-    afterAll(async () => {
-        await browser.close();
-    });
-
-    beforeEach(async () => {
-        context = await browser.newContext();
-        page = await context.newPage();
-    });
-
-    afterEach(async () => {
-        await context.close();
-    });
-
+test.describe("Hacker News page - Past", () => {
     // Committing this for now so the history shows success for some other reports
     // test("should display past articles depending on time modifier", async () => {
     //     await page.goto("https://news.ycombinator.com/front");
@@ -180,17 +139,22 @@ describe("Hacker News page - Past", () => {
     // });
 
 
-    test("should verify article content is visible", async () => {
+    test("should verify article content is visible", async ({ page }) => {
         await page.goto("https://news.ycombinator.com/front");
-        const firstArticleTitle = await page.locator(".submission .titleline > a").first();
-        expect(await firstArticleTitle.isVisible()).toBeTruthy();
+        await page.waitForLoadState('networkidle');
+
+        const firstArticleTitle = page.locator(".submission .titleline > a").first();
+        await expect(firstArticleTitle).toBeVisible();
+        const titleText = await firstArticleTitle.textContent();
+        expect(titleText?.trim().length).toBeGreaterThan(0);
     });
 
-    test("should verify articles have valid URLs", async () => {
+    test("should verify articles have valid URLs", async ({ page }) => {
         await page.goto("https://news.ycombinator.com/front");
+        await page.waitForLoadState('networkidle');
+
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
-        expect(firstArticleLink).toBeTruthy();
-        expect(firstArticleLink.length).toBeGreaterThan(0);
+        expect(firstArticleLink).toMatch(/^https?:\/\/.+/);
     });
 });
 
