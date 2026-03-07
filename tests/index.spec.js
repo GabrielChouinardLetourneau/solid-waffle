@@ -2,12 +2,17 @@ import { test, expect } from '@playwright/test';
 
 test.describe("Hacker News page - Newest", () => {
     test("should display articles sorted by newest first", async ({ page }) => {
-        await page.goto("https://news.ycombinator.com/newest");
-        await page.waitForLoadState('networkidle');
+        await test.step('Navigate to Hacker News newest page', async () => {
+            const response = await page.goto("/newest");
+            expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
+            await page.waitForLoadState('networkidle');
+        });
 
-        // Verify that there are articles on the page before proceeding with the test
-        let articleCount = await page.locator(".submission").count();
-        expect(articleCount).toBeGreaterThan(0);
+        let articleCount;
+        await test.step('Verify articles are present', async () => {
+            articleCount = await page.locator(".submission").count();
+            expect(articleCount).toBeGreaterThan(0);
+        });
 
         // Track total articles tested across all batches
         let totalArticlesTested = 0;
@@ -15,66 +20,69 @@ test.describe("Hacker News page - Newest", () => {
         const articlesToTest = 100;
         let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
 
-        while (totalArticlesTested < articlesToTest) {
-            // If we've reached the last position in this batch, load more
-            if (pointer > articleCount - 2) {
-                const moreButton = page.locator("a.morelink");
-                if (await moreButton.isVisible()) {
-                    // Save the last article's timestamp before reloading the next page
-                    const previousPageLastArticleElement = page.locator('.age').nth(articleCount - 1);
-                    await previousPageLastArticleElement.waitFor();
-                    previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
-                    
-                    await moreButton.click();
-                    await page.waitForLoadState('networkidle'); // Wait for articles to load
-                    articleCount = await page.locator(".submission").count(); // Update article count after loading new batch
-                    pointer = 0; // Reset pointer for next batch
+        await test.step('Compare 100 article timestamps across pages', async () => {
+            while (totalArticlesTested < articlesToTest) {
+                // If we've reached the last position in this batch, load more
+                if (pointer > articleCount - 2) {
+                    const moreButton = page.locator("a.morelink");
+                    if (await moreButton.isVisible()) {
+                        // Save the last article's timestamp before reloading the next page
+                        const previousPageLastArticleElement = page.locator('.age').nth(articleCount - 1);
+                        await previousPageLastArticleElement.waitFor();
+                        previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
+
+                        await moreButton.click();
+                        await page.waitForLoadState('networkidle'); // Wait for articles to load
+                        articleCount = await page.locator(".submission").count(); // Update article count after loading new batch
+                        pointer = 0; // Reset pointer for next batch
+                    }
+                    else {
+                        break; // No more articles available
+                    }
                 }
-                else {
-                    break; // No more articles available
+
+                const leftArticleElement = page.locator('.age').nth(pointer);
+                const rightArticleElement = page.locator('.age').nth(pointer + 1);
+                await leftArticleElement.waitFor();
+                await rightArticleElement.waitFor();
+
+                const leftArticleTime = await leftArticleElement.getAttribute('title');
+                const rightArticleTime = await rightArticleElement.getAttribute('title');
+
+                expect.soft(leftArticleTime).toBeTruthy();
+                expect.soft(rightArticleTime).toBeTruthy();
+
+                // If this is the first article after a reload and we have a previous timestamp, compare them before doing the regular comparisons
+                if (pointer === 0 && previousPageLastArticleTime) {
+                    const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
+                    const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
+                    const prevTime = new Date(prevUnix * 1000);
+                    const currentTime = new Date(currentUnix * 1000);
+                    expect.soft(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());
+                    totalArticlesTested++;
+                    previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
                 }
-            }
 
-            const leftArticleElement = page.locator('.age').nth(pointer);
-            const rightArticleElement = page.locator('.age').nth(pointer + 1);
-            await leftArticleElement.waitFor();
-            await rightArticleElement.waitFor();
-
-            const leftArticleTime = await leftArticleElement.getAttribute('title');
-            const rightArticleTime = await rightArticleElement.getAttribute('title');
-            
-            expect.soft(leftArticleTime).toBeTruthy();
-            expect.soft(rightArticleTime).toBeTruthy();
-
-            // If this is the first article after a reload and we have a previous timestamp, so we compare them before doing the regular comparisons
-            if (pointer === 0 && previousPageLastArticleTime) {
-                const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
-                const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
-                const prevTime = new Date(prevUnix * 1000);
-                const currentTime = new Date(currentUnix * 1000);
-                expect.soft(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());   
+                const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
+                const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
+                const leftTime = new Date(leftUnix * 1000);
+                const rightTime = new Date(rightUnix * 1000);
+                expect.soft(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());
                 totalArticlesTested++;
-                previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
-                
+                pointer++;
             }
+        });
 
-
-            const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
-            const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
-            const leftTime = new Date(leftUnix * 1000);
-            const rightTime = new Date(rightUnix * 1000);
-            expect.soft(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());
-            totalArticlesTested++;
-            pointer++;
-        }
-
-        // Verify we actually tested the full 100 comparisons and didn't exit early (e.g. due to lack of articles)
-        expect(totalArticlesTested).toBeGreaterThanOrEqual(articlesToTest);
+        await test.step('Verify 100 comparisons completed', async () => {
+            // Verify we actually tested the full 100 comparisons and didn't exit early
+            expect(totalArticlesTested).toBeGreaterThanOrEqual(articlesToTest);
+        });
     });
 
 
     test("should verify article content is visible", async ({ page }) => {
-        await page.goto("https://news.ycombinator.com/newest");
+        const response = await page.goto("/newest");
+        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
         await page.waitForLoadState('networkidle');
 
         const firstArticleTitle = page.locator(".submission .titleline > a").first();
@@ -84,7 +92,8 @@ test.describe("Hacker News page - Newest", () => {
     });
 
     test("should verify articles have valid URLs", async ({ page }) => {
-        await page.goto("https://news.ycombinator.com/newest");
+        const response = await page.goto("/newest");
+        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
         await page.waitForLoadState('networkidle');
 
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");
@@ -93,54 +102,66 @@ test.describe("Hacker News page - Newest", () => {
 });
 
 test.describe("Hacker News page - Past", () => {
-    // Committing this for now so the history shows success for some other reports
-    // test("should display past articles depending on time modifier", async () => {
-    //     await page.goto("https://news.ycombinator.com/front");
-    //     await page.waitForLoadState('networkidle');
+    test("should display past articles depending on date reference", async ({ page }) => {
+        // HN's /front page time modifiers do not reliably filter articles to the
+        // selected date — articles from other dates appear in results. Documented here to showcase the test structure and soft assertions for non-deterministic behavior.
+        // This test highlight some issues with the /front page which adds to other known issues with the page such as these links seen below
+        // https://news.ycombinator.com/item?id=47186188 | https://news.ycombinator.com/item?id=46896107
+        test.fail();
 
-    //     // Verify that there are articles on the page before proceeding with the test
-    //     let articleCount = await page.locator(".submission").count();
-    //     expect(articleCount).toBeGreaterThan(0);
+        await test.step('Navigate to Hacker News front page', async () => {
+            const response = await page.goto("/front");
+            expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
+            await page.waitForLoadState('networkidle');
+        });
 
-    //     // First take the date that we will be using our reference for the comparisons 
-    //     let referenceDateElement = page.locator('.pagetop > font');
-    //     await referenceDateElement.waitFor();
-    //     let referenceDate = await referenceDateElement.textContent();
-    //     expect(referenceDate).toBeTruthy();
+        let articleCount;
+        let referenceDateElement;
+        let referenceDate;
+        await test.step('Verify articles and reference date are present', async () => {
+            articleCount = await page.locator(".submission").count();
+            expect(articleCount).toBeGreaterThan(0);
 
+            referenceDateElement = page.locator('.pagetop > font');
+            await referenceDateElement.waitFor();
+            referenceDate = await referenceDateElement.textContent();
+            expect(referenceDate).toBeTruthy();
+        });
 
+        await test.step('Verify articles match reference date for each time modifier', async () => {
+            const hnmoreModifierCount = await page.locator(".hnmore > a").count();
+            for (let i = 0; i < hnmoreModifierCount; i++) {
+                const modifierElement = page.locator(".hnmore > a").nth(i);
+                await modifierElement.waitFor();
 
-    //     let hnmoreModifierCount = await page.locator(".hnmore > a").count();
-    //     for (let i = 0; i < hnmoreModifierCount; i++) {
-    //         const modifierElement = page.locator(".hnmore > a").nth(i);
-    //         await modifierElement.waitFor();
+                await modifierElement.click();
+                await page.waitForLoadState('networkidle'); // Wait for articles to load
 
-    //         await modifierElement.click();
-    //         await page.waitForLoadState('networkidle'); // Wait for articles to load
+                referenceDateElement = page.locator('.pagetop > font');
+                await referenceDateElement.waitFor();
+                referenceDate = await referenceDateElement.textContent();
+                expect(referenceDate).toBeTruthy();
 
-    //         referenceDateElement = page.locator('.pagetop > font');
-    //         await referenceDateElement.waitFor();
-    //         referenceDate = await referenceDateElement.textContent();
-    //         expect(referenceDate).toBeTruthy();
+                // Check the first 10 articles for each modifier
+                for (let j = 0; j < 10; j++) {
+                    const articleDateElement = page.locator('.age').nth(j);
+                    await articleDateElement.waitFor();
+                    const articleDateText = await articleDateElement.getAttribute('title');
 
-    //         // For now, let's just check the first 10 articles for each modifier, we can increase this number later if needed
-    //         for (let j = 0; j < 10; j++) {
-    //             const articleDateElement = page.locator('.age').nth(j);
-    //             await articleDateElement.waitFor();
-    //             const articleDateText = await articleDateElement.getAttribute('title');
-
-    //             const articleDateString = articleDateText.split("T")[0];
-    //             if (articleDateString) {
-    //                 const refDateString = referenceDate.split("T")[0];
-    //                 expect(articleDateString).toEqual(refDateString);
-    //             }
-    //         }
-    //     }
-    // });
+                    const articleDateString = articleDateText.split("T")[0];
+                    if (articleDateString) {
+                        const refDateString = referenceDate.split("T")[0];
+                        expect.soft(articleDateString).toEqual(refDateString);
+                    }
+                }
+            }
+        });
+    });
 
 
     test("should verify article content is visible", async ({ page }) => {
-        await page.goto("https://news.ycombinator.com/front");
+        const response = await page.goto("/front");
+        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
         await page.waitForLoadState('networkidle');
 
         const firstArticleTitle = page.locator(".submission .titleline > a").first();
@@ -150,7 +171,8 @@ test.describe("Hacker News page - Past", () => {
     });
 
     test("should verify articles have valid URLs", async ({ page }) => {
-        await page.goto("https://news.ycombinator.com/front");
+        const response = await page.goto("/front");
+        expect(response?.status(), `Navigation failed with HTTP ${response?.status()}`).toBeLessThan(400);
         await page.waitForLoadState('networkidle');
 
         const firstArticleLink = await page.locator(".submission .titleline > a").first().getAttribute("href");

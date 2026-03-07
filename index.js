@@ -8,7 +8,10 @@ async function sortHackerNewsArticles() {
   const page = await context.newPage();
 
   // go to Hacker News
-  await page.goto("https://news.ycombinator.com/newest");
+  const response = await page.goto("https://news.ycombinator.com/newest");
+  if (!response || response.status() >= 400) {
+    throw new Error(`Navigation failed with HTTP ${response?.status()}`);
+  }
   await page.waitForLoadState('networkidle');
 
   // Verify that there are articles on the page before proceeding
