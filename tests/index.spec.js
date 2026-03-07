@@ -54,18 +54,16 @@ test.describe("Hacker News page - Newest", () => {
                 if (pointer === 0 && previousPageLastArticleTime) {
                     const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
                     const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
-                    const prevTime = new Date(prevUnix * 1000);
-                    const currentTime = new Date(currentUnix * 1000);
-                    expect.soft(prevTime.getTime()).toBeGreaterThanOrEqual(currentTime.getTime());
+
+                    expect.soft(prevUnix).toBeGreaterThanOrEqual(currentUnix, `Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`);
                     totalArticlesTested++;
                     previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
                 }
 
                 const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
                 const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
-                const leftTime = new Date(leftUnix * 1000);
-                const rightTime = new Date(rightUnix * 1000);
-                expect.soft(leftTime.getTime()).toBeGreaterThanOrEqual(rightTime.getTime());
+
+                expect.soft(leftUnix).toBeGreaterThanOrEqual(rightUnix, `Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
                 totalArticlesTested++;
                 pointer++;
             }

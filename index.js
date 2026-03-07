@@ -26,6 +26,7 @@ async function sortHackerNewsArticles() {
     let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
     let failures = [];
 
+    // Loop until we've tested 100 article comparisons, loading more articles as needed
     while (totalArticlesTested < articlesToTest) {
         // If we've reached the last position in this batch, load more
         if (pointer > articleCount - 2) {
@@ -34,8 +35,8 @@ async function sortHackerNewsArticles() {
                 // Save the last article's timestamp before loading the next page
                 const previousPageLastArticleElement = await page.locator('.age').nth(articleCount - 1);
                 previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
-
                 await moreButton.click();
+
                 articleCount = await page.locator(".submission").count(); // Update article count after loading new batch
                 pointer = 0; // Reset pointer for next batch
             } else {
@@ -59,21 +60,20 @@ async function sortHackerNewsArticles() {
         if (pointer === 0 && previousPageLastArticleTime) {
             const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
             const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
-            const prevTime = new Date(prevUnix * 1000);
-            const currentTime = new Date(currentUnix * 1000);
-            if (prevTime.getTime() < currentTime.getTime()) {
-                failures.push(`Cross-page ordering failure: last article of previous page (${prevTime.toISOString()}) is older than first of next page (${currentTime.toISOString()})`);
+
+            if (prevUnix <= currentUnix) {
+                failures.push(`Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`);
             }
             totalArticlesTested++;
             previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
         }
 
+        // Compare the current pair of articles using their timestamps
         const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
         const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
-        const leftTime = new Date(leftUnix * 1000);
-        const rightTime = new Date(rightUnix * 1000);
-        if (leftTime.getTime() < rightTime.getTime()) {
-            failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftTime.toISOString()} is older than ${rightTime.toISOString()}`);
+
+        if (leftUnix <= rightUnix) {
+            failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
         }
         totalArticlesTested++;
         pointer++;
