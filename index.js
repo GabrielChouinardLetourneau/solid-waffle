@@ -7,27 +7,24 @@ async function sortHackerNewsArticles() {
     const context = await browser.newContext();
     const page = await context.newPage();
 
-    // go to Hacker News
     const response = await page.goto("https://news.ycombinator.com/newest");
     if (!response || response.status() >= 400) {
         throw new Error(`Navigation failed with HTTP ${response?.status()}`);
     }
 
-    // Verify that there are articles on the page before proceeding
     let articleCount = await page.locator(".submission").count();
     if (articleCount === 0) {
         throw new Error("No articles found on the page");
     }
 
-    // Track total articles tested across all batches
     let totalArticlesTested = 0;
     let pointer = 0;
     const articlesToTest = 100;
-    let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
+    let previousPageLastArticleTime = null;
     let failures = [];
 
-    // Loop until we've tested 100 article comparisons, loading more articles as needed
     while (totalArticlesTested < articlesToTest) {
+
         // If we've reached the last position in this batch, load more
         if (pointer > articleCount - 2) {
             const moreButton = page.locator("a.morelink");
@@ -72,16 +69,9 @@ async function sortHackerNewsArticles() {
         const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
         const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
 
-        // Uncomment and comment other if statement to test fail tests
-        if (totalArticlesTested % 31 === 0 && totalArticlesTested !== 0) { 
-            failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: {date here} is older than {date here}`);
-        }
-        else if ((leftUnix <= rightUnix) && (totalArticlesTested % 31 === 0 && totalArticlesTested !== 0)) {
+        if (leftUnix < rightUnix) {
             failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
         }
-        // if (leftUnix < rightUnix) {
-        //     failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
-        // }
         totalArticlesTested++;
         pointer++;
     }

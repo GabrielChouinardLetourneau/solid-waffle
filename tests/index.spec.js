@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe("Hacker News page - Newest", () => {
     test("should display articles sorted by newest first", async ({ page }) => {
+
         await test.step('Navigate to Hacker News newest page', async () => {
             const response = await page.goto("/newest");
 
@@ -14,21 +15,22 @@ test.describe("Hacker News page - Newest", () => {
             expect(articleCount).toBeGreaterThan(0);
         });
 
-        // Track total articles tested across all batches
         let totalArticlesTested = 0;
         let pointer = 0;
         const articlesToTest = 100;
-        let previousPageLastArticleTime = null; // Store the last article's timestamp for cross-batch comparison
+        let previousPageLastArticleTime = null; 
 
         await test.step('Compare 100 article timestamps across pages', async () => {
+
             while (totalArticlesTested < articlesToTest) {
+
                 // If we've reached the last position in this batch, load more
                 if (pointer > articleCount - 2) {
                     const moreButton = page.locator("a.morelink");
                     if (await moreButton.isVisible()) {
+
                         // Save the last article's timestamp before reloading the next page
-                        const previousPageLastArticleElement = page.locator('.age').nth(articleCount - 1);
-                        await previousPageLastArticleElement.waitFor();
+                        const previousPageLastArticleElement = await page.locator('.age').nth(articleCount - 1);
                         previousPageLastArticleTime = await previousPageLastArticleElement.getAttribute('title');
 
                         await moreButton.click();
@@ -55,15 +57,22 @@ test.describe("Hacker News page - Newest", () => {
                     const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
                     const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
 
-                    expect.soft(prevUnix).toBeGreaterThanOrEqual(currentUnix, `Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`);
+                    // Soft assertions to not stop at the first failure and report all ordering failures at the end of the test
+                    expect.soft(prevUnix, 
+                        `Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`
+                    ).toBeGreaterThanOrEqual(currentUnix);
                     totalArticlesTested++;
                     previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
                 }
 
                 const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
                 const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
+                
+                // Soft assertions to not stop at the first failure and report all ordering failures at the end of the test
+                expect.soft(leftUnix, 
+                    `Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`
+                ).toBeGreaterThanOrEqual(rightUnix);
 
-                expect.soft(leftUnix).toBeGreaterThanOrEqual(rightUnix, `Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
                 totalArticlesTested++;
                 pointer++;
             }
@@ -71,12 +80,12 @@ test.describe("Hacker News page - Newest", () => {
 
         await test.step('Verify 100 comparisons completed', async () => {
             // Verify we actually tested the full 100 comparisons and didn't exit early
-            expect(totalArticlesTested).toBeGreaterThanOrEqual(articlesToTest);
+            expect(totalArticlesTested).toEqual(articlesToTest);
         });
     });
 
 
-    test("should verify article content is visible", async ({ page }) => {
+    test("should display article content", async ({ page }) => {
         const response = await page.goto("/newest");
 
         expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
@@ -87,7 +96,7 @@ test.describe("Hacker News page - Newest", () => {
         expect(titleText?.trim().length).toBeGreaterThan(0);
     });
 
-    test("should verify articles have valid URLs", async ({ page }) => {
+    test("should display articles with valid URLs", async ({ page }) => {
         const response = await page.goto("/newest");
 
         expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
@@ -141,6 +150,8 @@ test.describe("Hacker News page - Past", () => {
                     const articleDateString = articleDateText.split("T")[0];
                     if (articleDateString) {
                         const refDateString = referenceDate.split("T")[0];
+
+                        // Soft assertions to not stop at the first failure and report all ordering failures at the end of the test
                         expect.soft(articleDateString).toEqual(refDateString);
                     }
                 }
@@ -149,7 +160,7 @@ test.describe("Hacker News page - Past", () => {
     });
 
 
-    test("should verify article content is visible", async ({ page }) => {
+    test("should display article content", async ({ page }) => {
         const response = await page.goto("/front");
         expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
@@ -159,7 +170,7 @@ test.describe("Hacker News page - Past", () => {
         expect(titleText?.trim().length).toBeGreaterThan(0);
     });
 
-    test("should verify articles have valid URLs", async ({ page }) => {
+    test("should display articles with valid URLs", async ({ page }) => {
         const response = await page.goto("/front");
         expect(response?.status(), `HTTP status was ${response?.status()} after navigation`).toBeLessThan(400);
 
