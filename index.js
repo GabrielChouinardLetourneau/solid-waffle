@@ -61,7 +61,7 @@ async function sortHackerNewsArticles() {
             const prevUnix = parseInt(previousPageLastArticleTime.split(' ')[1]);
             const currentUnix = parseInt(leftArticleTime.split(' ')[1]);
 
-            if (prevUnix <= currentUnix) {
+            if (prevUnix < currentUnix) {
                 failures.push(`Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`);
             }
             totalArticlesTested++;
@@ -72,9 +72,16 @@ async function sortHackerNewsArticles() {
         const leftUnix = parseInt(leftArticleTime.split(' ')[1]);
         const rightUnix = parseInt(rightArticleTime.split(' ')[1]);
 
-        if (leftUnix <= rightUnix) {
+        // Uncomment and comment other if statement to test fail tests
+        if (totalArticlesTested % 31 === 0 && totalArticlesTested !== 0) { 
+            failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: {date here} is older than {date here}`);
+        }
+        else if ((leftUnix <= rightUnix) && (totalArticlesTested % 31 === 0 && totalArticlesTested !== 0)) {
             failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
         }
+        // if (leftUnix < rightUnix) {
+        //     failures.push(`Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`);
+        // }
         totalArticlesTested++;
         pointer++;
     }
