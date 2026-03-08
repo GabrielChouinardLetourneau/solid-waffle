@@ -6,3 +6,6 @@ node_modules/
 # Playwright
 /blob-report/
 /playwright/.auth/
+
+# url files for the purpose of sharing the assessment
+*.url

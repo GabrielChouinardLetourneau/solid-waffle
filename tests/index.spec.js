@@ -59,7 +59,7 @@ test.describe("Hacker News page - Newest", () => {
 
                     // Soft assertions to not stop at the first failure and report all ordering failures at the end of the test
                     expect.soft(prevUnix, 
-                        `Cross-page ordering failure: last article of previous page (${previousPageLastArticleTime}) is older than first of next page (${leftArticleTime})`
+                        `Checking cross-page order of ${previousPageLastArticleTime} and ${leftArticleTime}`
                     ).toBeGreaterThanOrEqual(currentUnix);
                     totalArticlesTested++;
                     previousPageLastArticleTime = null; // Clear the previous page's last article time after the first comparison
@@ -70,7 +70,7 @@ test.describe("Hacker News page - Newest", () => {
                 
                 // Soft assertions to not stop at the first failure and report all ordering failures at the end of the test
                 expect.soft(leftUnix, 
-                    `Ordering failure at positions ${pointer} and ${pointer + 1}: ${leftArticleTime} is older than ${rightArticleTime}`
+                    `Checking order of ${leftArticleTime} and ${rightArticleTime}`
                 ).toBeGreaterThanOrEqual(rightUnix);
 
                 totalArticlesTested++;
